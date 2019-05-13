@@ -75,12 +75,25 @@ public partial class Curl
         {
             var header = H.ToSqlString().Value;
             if (!string.IsNullOrWhiteSpace(header))
-                client.Headers.Add(header);
+            {
+                if (header.ToLower().Contains(";"))
+                {
+                    var headers = header.Split(';');
+                    foreach(string h2 in headers)
+                    {
+                        client.Headers.Add(h2);
+                    }
+                }
+                else
+                {
+                    client.Headers.Add(header);
+                }
+            }
         }
     }
 
     [SqlProcedure]
-    public static void Put(SqlChars H, SqlChars d, SqlChars url)
+    public static SqlChars Put(SqlChars H, SqlChars d, SqlChars url)
     {
         var client = new WebClient();
         AddHeader(H, client);
@@ -92,11 +105,11 @@ public partial class Curl
                     "PUT",
                     d.ToSqlString().Value
                     );
-        SqlContext.Pipe.Send("Request is executed. " + response);
+        return new SqlChars(response);
     }
 
     [SqlProcedure]
-    public static void PutWithRetry(SqlChars H, SqlChars d, SqlChars url)
+    public static SqlChars PutWithRetry(SqlChars H, SqlChars d, SqlChars url)
     {
         var client = new WebClient();
         AddHeader(H, client);
@@ -123,7 +136,13 @@ public partial class Curl
             }
         while (i > 0);
         if (i == -1)
+            return new SqlChars(response);
+        else
+        {
             SqlContext.Pipe.Send("Request is executed." + response);
+            return new SqlChars(String.Empty);
+        }
+            
     }
 
 };
