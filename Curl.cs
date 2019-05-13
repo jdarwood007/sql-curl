@@ -22,7 +22,7 @@ public partial class Curl
     }
 
     [SqlProcedure]
-    public static void Post(SqlChars H, SqlChars d, SqlChars url)
+    public static SqlChars Post(SqlChars H, SqlChars d, SqlChars url)
     {
         var client = new WebClient();
         AddHeader(H, client);
@@ -33,11 +33,11 @@ public partial class Curl
                     Uri.EscapeUriString(url.ToSqlString().Value),
                     d.ToSqlString().Value
                     );
-        SqlContext.Pipe.Send("Request is executed. " + response);
+        return new SqlChars(response);
     }
 
     [SqlProcedure]
-    public static void PostWithRetry(SqlChars H, SqlChars d, SqlChars url)
+    public static SqlChars PostWithRetry(SqlChars H, SqlChars d, SqlChars url)
     {
         var client = new WebClient();
         AddHeader(H, client);
@@ -62,8 +62,14 @@ public partial class Curl
                 Thread.Sleep(DELAY_ON_ERROR);
             }
         while (i > 0);
-        if(i==-1)
+        if (i == -1)
+            return new SqlChars(response);
+        else
+        {
             SqlContext.Pipe.Send("Request is executed." + response);
+            return new SqlChars(String.Empty);
+
+        }
     }
 
     static readonly int RETRY_COUNT = 3;
