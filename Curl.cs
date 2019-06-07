@@ -31,6 +31,7 @@ public partial class Curl
         var response =
                 client.UploadString(
                     Uri.EscapeUriString(url.ToSqlString().Value),
+                    "POST",
                     d.ToSqlString().Value
                     );
         return new SqlChars(response);
@@ -50,6 +51,7 @@ public partial class Curl
                 response =
                         client.UploadString(
                             Uri.EscapeUriString(url.ToSqlString().Value),
+                            "POST",
                             d.ToSqlString().Value
                             );
                 i = -1;
@@ -77,6 +79,8 @@ public partial class Curl
 
     private static void AddHeader(SqlChars H, WebClient client)
     {
+        char[] charsToTrim = { ' ', '"'};
+
         if (!H.IsNull)
         {
             var header = H.ToSqlString().Value;
@@ -87,7 +91,20 @@ public partial class Curl
                     var headers = header.Split(';');
                     foreach(string h2 in headers)
                     {
-                        client.Headers.Add(h2);
+                        /*
+                         * As much as we would like to just directly set content-type, it seems Microsoft doesn't allow this.
+                         * References: https://stackoverflow.com/questions/6560769/webclient-set-headers
+                         * References: https://stackoverflow.com/questions/15091300/posting-json-to-url-via-webclient-in-c-sharp
+                        */
+                        var tempHeader = h2.Split(':');
+                        if (tempHeader.Length > 1 && tempHeader[0].ToLower() == "content-type")
+                        {
+                            client.Headers["Content-Type"] = tempHeader[1].ToLower().Trim(charsToTrim);
+                        }
+                        else
+                        {
+                            client.Headers.Add(h2);
+                        }
                     }
                 }
                 else
