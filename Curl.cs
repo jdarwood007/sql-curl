@@ -13,7 +13,13 @@ public partial class Curl
     [return: SqlFacet(MaxSize = -1)]
     public static SqlChars Get(SqlChars H, SqlChars url)
     {
-        var client = new WebClient();
+        /* 
+         * We need to set TLS 1.2 for all connections as WebClient is built with a older .NET framework and does not default to TLS 1.2
+         * References: https://stackoverflow.com/questions/2813674/webclient-from-asp-net-gives-an-existing-connection-was-forcibly-closed-by-the
+         */
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+        var client = new CustomWebClient();
+
         AddHeader(H, client);
         return new SqlChars(
                 client.DownloadString(
@@ -24,6 +30,11 @@ public partial class Curl
     [SqlProcedure]
     public static SqlChars Post(SqlChars H, SqlChars d, SqlChars url)
     {
+        /* 
+         * We need to set TLS 1.2 for all connections as WebClient is built with a older .NET framework and does not default to TLS 1.2
+         * References: https://stackoverflow.com/questions/2813674/webclient-from-asp-net-gives-an-existing-connection-was-forcibly-closed-by-the
+         */
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         var client = new WebClient();
         AddHeader(H, client);
         if (d.IsNull)
@@ -40,6 +51,11 @@ public partial class Curl
     [SqlProcedure]
     public static SqlChars PostWithRetry(SqlChars H, SqlChars d, SqlChars url)
     {
+        /* 
+         * We need to set TLS 1.2 for all connections as WebClient is built with a older .NET framework and does not default to TLS 1.2
+         * References: https://stackoverflow.com/questions/2813674/webclient-from-asp-net-gives-an-existing-connection-was-forcibly-closed-by-the
+         */
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         var client = new WebClient();
         AddHeader(H, client);
         if (d.IsNull)
@@ -118,6 +134,11 @@ public partial class Curl
     [SqlProcedure]
     public static SqlChars Put(SqlChars H, SqlChars d, SqlChars url)
     {
+        /* 
+         * We need to set TLS 1.2 for all connections as WebClient is built with a older .NET framework and does not default to TLS 1.2
+         * References: https://stackoverflow.com/questions/2813674/webclient-from-asp-net-gives-an-existing-connection-was-forcibly-closed-by-the
+         */
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         var client = new WebClient();
         AddHeader(H, client);
         if (d.IsNull)
@@ -134,6 +155,11 @@ public partial class Curl
     [SqlProcedure]
     public static SqlChars PutWithRetry(SqlChars H, SqlChars d, SqlChars url)
     {
+        /* 
+         * We need to set TLS 1.2 for all connections as WebClient is built with a older .NET framework and does not default to TLS 1.2
+         * References: https://stackoverflow.com/questions/2813674/webclient-from-asp-net-gives-an-existing-connection-was-forcibly-closed-by-the
+         */
+        ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
         var client = new WebClient();
         AddHeader(H, client);
         if (d.IsNull)
@@ -169,3 +195,22 @@ public partial class Curl
     }
 
 };
+
+/* 
+ * We use this class to override the default WebClient and specify keep alive to false (closed) and set the Except
+ * References: https://stackoverflow.com/questions/2813674/webclient-from-asp-net-gives-an-existing-connection-was-forcibly-closed-by-the
+ */
+    public class CustomWebClient : WebClient
+{
+
+    protected override WebRequest GetWebRequest(Uri address)
+    {
+        var request = base.GetWebRequest(address);
+        if (request is HttpWebRequest)
+        {
+            (request as HttpWebRequest).KeepAlive = false;
+            (request as HttpWebRequest).ServicePoint.Expect100Continue = false;
+        }
+        return request;
+    }
+}
